@@ -113,7 +113,7 @@ def awesome_spider():
 
 	for child in ulowner.descendants:
 		if child.name == 'li':
-			if child['class'] == ['l_one'] or child['class'] == ['l_one selected']:
+			if child['class'] == ['l_one'] or child['class'] == ['l_one selected'] or child['class'] == ['l_one current']:
 				
 				if not Category.objects.filter(name=child.contents[0]['title']):
 					category = Category.objects.create(name=child.contents[0]['title'])
@@ -124,36 +124,49 @@ def awesome_spider():
 				for subchild in child.contents[1].descendants:
 					if subchild.name == 'li':
 						if subchild['class'] == ['l_two']: # subcategories
-						#	print('ssssssssssssssss')
-							if not SubCategory.objects.filter(name=subchild.contents[0]['title'], category=category):
-								subcategory = SubCategory.objects.create(name=subchild.contents[0]['title'], category=category)
+						
+							if not SubCategory.objects.filter(name=subchild.contents[0].text, category=category):
+								subcategory = SubCategory.objects.create(name=subchild.contents[0].text, category=category)
 							else:
-								subcategory = SubCategory.objects.filter(name=subchild.contents[0]['title'], category=category)[0]
+								subcategory = SubCategory.objects.filter(name=subchild.contents[0].text, category=category)[0]
 
 							for subsubchild in subchild.descendants:
-								if subsubchild.name == 'li':
-									if subsubchild['class'] == ['title']: #groups
+								if subsubchild.name == 'ul':
+									for newchild in subsubchild.contents: #groups
+										if newchild.name == 'li':
+											if newchild['class'] == ['title']:
 										
-										if not Group.objects.filter(name=subchild.contents[0]['title'], subcategory=subcategory):
-											group = Group.objects.create(name=subchild.contents[0]['title'], subcategory=subcategory)
+												if not Group.objects.filter(name=newchild.contents[0].text, subcategory=subcategory):
+													group = Group.objects.create(name=newchild.contents[0].text, subcategory=subcategory)
 
-										else:
-											group = Group.objects.filter(name=subchild.contents[0]['title'], subcategory=subcategory)[0]
+												else:
+													group = Group.objects.filter(name=newchild.contents[0].text, subcategory=subcategory)[0]
+
+											elif newchild['class'] == ['item']:
+
+												if not SubGroup.objects.filter(name=newchild.contents[0].text, group=group):
+													subgroup = SubGroup.objects.create(name=newchild.contents[0].text, group=group)
+													attr_finder(newchild.contents[0]['href'], subgroup.name)
+													
+												else:
+													subgroup = SubGroup.objects.filter(name=newchild.contents[0].text, group=group)[0]
+													attr_finder(newchild.contents[0]['href'], subgroup.name)
 
 
-										for newborn in subsubchild.parent.descendants:
-											if newborn.name == 'li':
-												if newborn['class'] == ['item']:#subgroup
-													if newborn.contents[0].name == 'a':
 
-														if not SubGroup.objects.filter(name=newborn.contents[0].text, group=group):
-															subgroup = SubGroup.objects.create(name=newborn.contents[0].text, group=group)
-														
-														else:
-															subgroup = SubGroup.objects.filter(name=newborn.contents[0].text, group=group)[0]
-
-														if not newborn.contents[0].text == 'مشاهده موارد بیشتر':
-															attr_finder(newborn.contents[0]['href'], subgroup.name)
+#										for newborn in subsubchild.parent.descendants:
+#											if newborn.name == 'li':
+#												if newborn['class'] == ['item']:#subgroup
+#													if newborn.contents[0].name == 'a':
+#
+#														if not SubGroup.objects.filter(name=newborn.contents[0].text, group=group):
+#															subgroup = SubGroup.objects.create(name=newborn.contents[0].text, group=group)
+#														
+#														else:
+#															subgroup = SubGroup.objects.filter(name=newborn.contents[0].text, group=group)[0]
+###
+	#													if not newborn.contents[0].text == 'مشاهده موارد بیشتر':
+	#														attr_finder(newborn.contents[0]['href'], subgroup.name)
 
 
 def web_spider(request):
