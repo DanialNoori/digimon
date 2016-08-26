@@ -114,7 +114,7 @@ def awesome_spider():
 
 	for child in ulowner.descendants:
 		if child.name == 'li':
-			if child['class'] == ['l_one'] or child['class'] == ['l_one selected'] or child['class'] == ['l_one current']:
+			if child['class'] == ['l_one'] and child.contents[0].text != 'لوازم خانگی' and child.contents[0].text != 'کالای دیجیتال':
 				
 				if not Category.objects.filter(name=child.contents[0]['title']):
 					category = Category.objects.create(name=child.contents[0]['title'])
@@ -144,24 +144,27 @@ def awesome_spider():
 													group = Group.objects.filter(name=newchild.contents[0].text, subcategory=subcategory)[0]
 
 											elif newchild['class'] == ['item']:
+												try:
+													if not SubGroup.objects.filter(name=newchild.contents[0].text, group=group):
 
-												if not SubGroup.objects.filter(name=newchild.contents[0].text, group=group):
-													try:
 														subgroup = SubGroup.objects.create(name=newchild.contents[0].text, group=group)
 														attr_finder(newchild.contents[0]['href'], subgroup.name)
-													
-													except AttributeError:
+													else:
+														subgroup = SubGroup.objects.filter(name=newchild.contents[0].text, group=group)[0]
+														attr_finder(newchild.contents[0]['href'], subgroup.name)
+
+												except AttributeError:
+
+													if not SubGroup.objects.filter(name=newchild.contents[1].text, group=group):
+
+														subgroup = SubGroup.objects.create(name=newchild.contents[1].text, group=group)
+														attr_finder(newchild.contents[1]['href'], subgroup.name)
+													else:
+
 														subgroup = SubGroup.objects.create(name=newchild.contents[1].text, group=group)
 														attr_finder(newchild.contents[1]['href'], subgroup.name)
 												
-												else:
-													try:
-														subgroup = SubGroup.objects.filter(name=newchild.contents[0].text, group=group)[0]
-														attr_finder(newchild.contents[0]['href'], subgroup.name)
-													except AttributeError:
-
-														subgroup = SubGroup.objects.create(name=newchild.contents[1].text, group=group)
-														attr_finder(newchild.contents[1]['href'], subgroup.name)
+														
 
 
 #										for newborn in subsubchild.parent.descendants:
