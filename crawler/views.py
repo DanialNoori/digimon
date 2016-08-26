@@ -32,6 +32,7 @@ def attr_finder(product_page, sub_group_name):
 						attrib = Attribute.objects.filter(name=product_attr, subgroup=subgp)[0]
 
 					for child in div.descendants:
+						
 						if child.name == 'li':
 							option = child.text
 							if not Option.objects.filter(name=option, attribute=attrib):
@@ -143,14 +144,15 @@ def awesome_spider():
 										for newborn in subsubchild.parent.descendants:
 											if newborn.name == 'li':
 												if newborn['class'] == ['item']:#subgroup
-													if newborn.contents[0].name == 'a': 
-														if not SubGroup.objects.filter(name=newborn.contents[0]['title'], group=group):
-															subgroup = SubGroup.objects.create(name=newborn.contents[0]['title'], group=group)
+													if newborn.contents[0].name == 'a':
+
+														if not SubGroup.objects.filter(name=newborn.contents[0].text, group=group):
+															subgroup = SubGroup.objects.create(name=newborn.contents[0].text, group=group)
 														
 														else:
-															subgroup = SubGroup.objects.filter(name=newborn.contents[0]['title'], group=group)[0]
+															subgroup = SubGroup.objects.filter(name=newborn.contents[0].text, group=group)[0]
 
-														if not newborn.contents[0]['title'] == 'مشاهده موارد بیشتر':
+														if not newborn.contents[0].text == 'مشاهده موارد بیشتر':
 															attr_finder(newborn.contents[0]['href'], subgroup.name)
 
 
