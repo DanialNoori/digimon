@@ -71,20 +71,19 @@ def sub_group_finder():
 	boxes = soup.find_all('div', {'class' : 'box'})
 	
 	for box in boxes:
-		if box.contents[0].text == 'زیبایی و سلامتی':
 			
-			if not Category.objects.filter(name=box.contents[0].text):
-				Category.objects.create(name=box.contents[0].text)
+		if not Category.objects.filter(name=box.contents[0].text):
+			Category.objects.create(name=box.contents[0].text)
 
-			for child in box.descendants:
-				if child.name == 'a':
-					category = Category.objects.filter(name=box.contents[0].text)[0]
-					subname = child['title']
+		for child in box.descendants:
+			if child.name == 'a':
+				category = Category.objects.filter(name=box.contents[0].text)[0]
+				subname = child['title']
 					
-					if not SubCategory.objects.filter(name=subname, category=category):
-						SubCategory.objects.create(name=subname, category=category)
+				if not SubCategory.objects.filter(name=subname, category=category):
+					SubCategory.objects.create(name=subname, category=category)
 					
-					sub_group_crawler(digi_normalizer(child['href']), child['title'])
+				sub_group_crawler(digi_normalizer(child['href']), child['title'])
 
 
 
