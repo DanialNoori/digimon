@@ -35,8 +35,9 @@ def attr_finder(product_page, sub_group_name):
 						
 						if child.name == 'li':
 							option = child.text
-							if not Option.objects.filter(name=option, attribute=attrib):
-								Option.objects.create(name=option, attribute=attrib)
+							if len(option) <= 100:
+								if not Option.objects.filter(name=option, attribute=attrib):
+									Option.objects.create(name=option, attribute=attrib)
 
 
 
@@ -145,13 +146,22 @@ def awesome_spider():
 											elif newchild['class'] == ['item']:
 
 												if not SubGroup.objects.filter(name=newchild.contents[0].text, group=group):
-													subgroup = SubGroup.objects.create(name=newchild.contents[0].text, group=group)
-													attr_finder(newchild.contents[0]['href'], subgroup.name)
+													try:
+														subgroup = SubGroup.objects.create(name=newchild.contents[0].text, group=group)
+														attr_finder(newchild.contents[0]['href'], subgroup.name)
 													
+													except AttributeError:
+														subgroup = SubGroup.objects.create(name=newchild.contents[1].text, group=group)
+														attr_finder(newchild.contents[1]['href'], subgroup.name)
+												
 												else:
-													subgroup = SubGroup.objects.filter(name=newchild.contents[0].text, group=group)[0]
-													attr_finder(newchild.contents[0]['href'], subgroup.name)
+													try:
+														subgroup = SubGroup.objects.filter(name=newchild.contents[0].text, group=group)[0]
+														attr_finder(newchild.contents[0]['href'], subgroup.name)
+													except AttributeError:
 
+														subgroup = SubGroup.objects.create(name=newchild.contents[1].text, group=group)
+														attr_finder(newchild.contents[1]['href'], subgroup.name)
 
 
 #										for newborn in subsubchild.parent.descendants:
