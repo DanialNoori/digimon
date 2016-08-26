@@ -19,9 +19,17 @@ class SubCategory(models.Model):
 		return self.name
 
 
-class SubGroup(models.Model):
+class Group(models.Model):
 	name = models.CharField(max_length=100, blank=True, null=True)
 	subcategory = models.ForeignKey(SubCategory, blank=True, null=True)
+
+	def __str__(self):
+		return self.name
+
+
+class SubGroup(models.Model):
+	name = models.CharField(max_length=100, blank=True, null=True)
+	group = models.ForeignKey(Group, blank=True, null=True)
 
 	def __str__(self):
 		return self.name
@@ -34,3 +42,10 @@ class Attribute(models.Model):
 	def __str__(self):
 		return self.name
 
+
+class Option(models.Model):
+	name = models.CharField(max_length=100, blank=True, null=True)
+	attribute = models.ForeignKey(Attribute, blank=True, null=True)
+
+	def __str__(self):
+		return self.name

@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from bs4 import BeautifulSoup
 from django.http import HttpResponse
-from .models import Category, SubCategory, SubGroup, Attribute
+from .models import Category, SubCategory, SubGroup, Attribute, Group, Option
 import datetime
 import requests
 # Create your views here.
@@ -11,18 +11,32 @@ def digi_normalizer(href):
 	return sub_category_url
 
 
-def attr_finder(product_page,sub_category_title, sub_group_name):
-	response = requests.get(product_page, verify=False)
+def attr_finder(product_page, sub_group_name):
+	daurl = digi_normalizer(product_page)
+	response = requests.get(daurl, verify=False)
 	soup = BeautifulSoup(response.text , 'html.parser')
-	spans = soup.find_all('span', {'class' : 'technicalspecs-title'})
-	for span in spans:
+	div = soup.find('div', {'class' : 'container'})
+	
+	if div:
+		for newchild in div.descendants:
+			if newchild.name == 'span':
+				if newchild.parent['class'] == ['header']:
+					product_attr = newchild.text
+
+					subgp = SubGroup.objects.filter(name=sub_group_name)[0]
 		
-		product_attr = span.text
-		subcat = SubCategory.objects.filter(name=sub_category_title)
-		subgp = SubGroup.objects.filter(name=sub_group_name, subcategory=subcat)
-		if not Attribute.objects.filter(name=product_attr, subgroup=subgp):
-			Attribute.objects.create(name=product_attr, subgroup=subgp)
-		
+					if not Attribute.objects.filter(name=product_attr, subgroup=subgp):
+			
+						attrib = Attribute.objects.create(name=product_attr, subgroup=subgp)
+					else:
+						attrib = Attribute.objects.filter(name=product_attr, subgroup=subgp)[0]
+
+					for child in div.descendants:
+						if child.name == 'li':
+							option = child.text
+							if not Option.objects.filter(name=option, attribute=attrib):
+								Option.objects.create(name=option, attribute=attrib)
+
 
 
 def product_page_attr_finder(products_url,sub_category_title, sub_group_name):
@@ -65,29 +79,84 @@ def sub_group_crawler(url, sub_category_title):
 
 
 
-def sub_group_finder():
+#def sub_group_finder():
+#	response = requests.get('http://www.digikala.com', verify=False)
+#	soup = BeautifulSoup(response.text, 'html.parser')
+#	ulowner = soup.find_all('ul', {'class' : 'root'})
+#	
+#	for tag in ulowner.descendants:
+#		
+#		if tag.name == ''
+#		if not Category.objects.filter(name=box.contents[0].text):
+#			Category.objects.create(name=box.contents[0].text)
+#
+#		for child in box.descendants:
+#			if child.name == 'a':
+#				category = Category.objects.filter(name=box.contents[0].text)[0]
+#				subname = child['title']
+#					
+#				if not SubCategory.objects.filter(name=subname, category=category):
+#					SubCategory.objects.create(name=subname, category=category)
+#					
+#				sub_group_crawler(digi_normalizer(child['href']), child['title'])
+
+
+
+
+
+def awesome_spider():
+
 	response = requests.get('http://www.digikala.com', verify=False)
 	soup = BeautifulSoup(response.text, 'html.parser')
-	boxes = soup.find_all('div', {'class' : 'box'})
-	
-	for box in boxes:
+	ulowner = soup.find('ul', {'class' : 'root'})
+
+	for child in ulowner.descendants:
+		if child.name == 'li':
+			if child['class'] == ['l_one'] or child['class'] == ['l_one selected']:
+				
+				if not Category.objects.filter(name=child.contents[0]['title']):
+					category = Category.objects.create(name=child.contents[0]['title'])
+				else:
+					category = Category.objects.filter(name=child.contents[0]['title'])[0]
 			
-		if not Category.objects.filter(name=box.contents[0].text):
-			Category.objects.create(name=box.contents[0].text)
 
-		for child in box.descendants:
-			if child.name == 'a':
-				category = Category.objects.filter(name=box.contents[0].text)[0]
-				subname = child['title']
-					
-				if not SubCategory.objects.filter(name=subname, category=category):
-					SubCategory.objects.create(name=subname, category=category)
-					
-				sub_group_crawler(digi_normalizer(child['href']), child['title'])
+				for subchild in child.contents[1].descendants:
+					if subchild.name == 'li':
+						if subchild['class'] == ['l_two']: # subcategories
+						#	print('ssssssssssssssss')
+							if not SubCategory.objects.filter(name=subchild.contents[0]['title'], category=category):
+								subcategory = SubCategory.objects.create(name=subchild.contents[0]['title'], category=category)
+							else:
+								subcategory = SubCategory.objects.filter(name=subchild.contents[0]['title'], category=category)[0]
 
+							for subsubchild in subchild.descendants:
+								if subsubchild.name == 'li':
+									if subsubchild['class'] == ['title']: #groups
+										
+										if not Group.objects.filter(name=subchild.contents[0]['title'], subcategory=subcategory):
+											group = Group.objects.create(name=subchild.contents[0]['title'], subcategory=subcategory)
+
+										else:
+											group = Group.objects.filter(name=subchild.contents[0]['title'], subcategory=subcategory)[0]
+
+
+										for newborn in subsubchild.parent.descendants:
+											if newborn.name == 'li':
+												if newborn['class'] == ['item']:#subgroup
+													if newborn.contents[0].name == 'a': 
+														if not SubGroup.objects.filter(name=newborn.contents[0]['title'], group=group):
+															subgroup = SubGroup.objects.create(name=newborn.contents[0]['title'], group=group)
+														
+														else:
+															subgroup = SubGroup.objects.filter(name=newborn.contents[0]['title'], group=group)[0]
+
+														if not newborn.contents[0]['title'] == 'مشاهده موارد بیشتر':
+															attr_finder(newborn.contents[0]['href'], subgroup.name)
 
 
 def web_spider(request):
 	if request.method == 'GET':
-		sub_group_finder()
+		awesome_spider()
 		return HttpResponse('Done!')
+
+
