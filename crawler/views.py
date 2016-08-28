@@ -21,6 +21,7 @@ def attr_finder(product_page, sub_group_name):
 		for newchild in div.descendants:
 			if newchild.name == 'span':
 				if newchild.parent['class'] == ['header']:
+					
 					product_attr = newchild.text
 
 					subgp = SubGroup.objects.filter(name=sub_group_name)[0]
@@ -31,7 +32,7 @@ def attr_finder(product_page, sub_group_name):
 					else:
 						attrib = Attribute.objects.filter(name=product_attr, subgroup=subgp)[0]
 
-					for child in div.descendants:
+					for child in newchild.parent.descendants:
 						
 						if child.name == 'li':
 							option = child.text
@@ -114,7 +115,7 @@ def awesome_spider():
 
 	for child in ulowner.descendants:
 		if child.name == 'li':
-			if child['class'] == ['l_one'] and child.contents[0].text != 'لوازم خانگی' and child.contents[0].text != 'کالای دیجیتال':
+			if child['class'] == ['l_one']:
 				
 				if not Category.objects.filter(name=child.contents[0]['title']):
 					category = Category.objects.create(name=child.contents[0]['title'])
@@ -186,5 +187,13 @@ def web_spider(request):
 	if request.method == 'GET':
 		awesome_spider()
 		return HttpResponse('Done!')
+
+
+def test(request):
+	mask = SubGroup.objects.filter(name= 'زنانه')[0]
+	attribute = Attribute.objects.filter(subgroup=mask, name='کشور مبدا برند')
+	ops = Option.objects.filter(attribute=attribute)
+	return render(request, 'test.html', {'mask' : mask, 'attrs' : attribute, 'ops' : ops})
+
 
 
