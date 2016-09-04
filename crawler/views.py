@@ -115,7 +115,7 @@ def awesome_spider():
 
 	for child in ulowner.descendants:
 		if child.name == 'li':
-			if child['class'] == ['l_one']:
+			if child['class'] == ['l_one'] and child.contents[0].text == 'مادر و کودک':
 				
 				if not Category.objects.filter(name=child.contents[0]['title']):
 					category = Category.objects.create(name=child.contents[0]['title'])
@@ -189,11 +189,101 @@ def web_spider(request):
 		return HttpResponse('Done!')
 
 
-def test(request):
-	mask = SubGroup.objects.filter(name= 'زنانه')[0]
-	attribute = Attribute.objects.filter(subgroup=mask, name='کشور مبدا برند')
-	ops = Option.objects.filter(attribute=attribute)
-	return render(request, 'test.html', {'mask' : mask, 'attrs' : attribute, 'ops' : ops})
+
+
+
+def amazon_normalizer(href):
+	subdepturl = 'http://www.findbrowsenodes.com' + href
+	return subdepturl
+
+
+def browse_nodes_first():
+	response = requests.get('http://www.findbrowsenodes.com/us', verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	atags = soup.find_all('a', {'class' : 'c_name'})
+	
+	for atag in atags:
+		
+		suburl = amazon_normalizer(atag['href'])
+		deptname = atag.text
+		
+		if Category.objects.filter(name=deptname):
+			deptid = Category.objects.filter(name=deptname)[0].id
+			browse_nodes_second(suburl, deptid)
+		
+		else:
+			
+			dept = Category.objects.create(name=deptname)
+			browse_nodes_second(suburl, dept.id)
+
+			
+
+
+
+def browse_nodes_second(page, deptid):
+
+	response = requests.get(page, verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	divtags = soup.find_all('div', {'class' : 'subll'})
+	
+	
+	for divtag in divtags:
+		subdeptname = divtag.contents[0].text
+		newhref = divtag.contents[0]['href']
+		newurl = amazon_normalizer(newhref)
+	
+		if SubCategory.objects.filter(name=subdeptname, category=Category.objects.get(id=deptid)):
+			browse_nodes_third(newurl, SubCategory.objects.filter(name=subdeptname, category=Category.objects.get(id=deptid))[0].id)
+		else:
+			subcat = SubCategory.objects.create(name=subdeptname, category=Category.objects.get(id=deptid))
+			browse_nodes_third(newurl, subcat.id)
+
+
+
+def browse_nodes_third(page, subdeptid):
+
+	response = requests.get(page, verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	divtags = soup.find_all('div', {'class' : 'subll'})
+	
+	
+	for divtag in divtags:
+		groupname = divtag.contents[0].text
+		newhref = divtag.contents[0]['href']
+		newurl = amazon_normalizer(newhref)
+
+		if not Group.objects.filter(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid)):
+			subcat = Group.objects.create(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid))
+			browse_nodes_fourth(newurl, subcat.id)	
+		
+		else:
+			subcat = Group.objects.filter(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid))[0]
+			browse_nodes_fourth(newurl, subcat.id)
+
+
+
+def browse_nodes_fourth(page, subdeptid):
+
+	response = requests.get(page, verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	divtags = soup.find_all('div', {'class' : 'subll'})
+	
+	
+	for divtag in divtags:
+		subgroupname = divtag.contents[0].text
+		newhref = divtag.contents[0]['href']
+		newurl = amazon_normalizer(newhref)
+
+		if not SubGroup.objects.filter(name=subgroupname, group=Group.objects.get(id=subdeptid)):
+			subcat = SubGroup.objects.create(name=subgroupname, group=Group.objects.get(id=subdeptid))
+
+
+
+def browse_amazon_nodes(request):
+	browse_nodes_first()
+	return HttpResponse('OK')	
+
+
 
 
 

@@ -21,5 +21,5 @@ from crawler import views
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^$', views.web_spider),
-    url(r'^test$', views.test),
+    url(r'^amazon$', views.browse_amazon_nodes),
 ]
