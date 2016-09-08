@@ -319,24 +319,40 @@ def tesco_second(suburl, deptid):
 	soup = BeautifulSoup(response.text, 'html.parser')
 	divtag = soup.find('div', {'class' : 'menu'})	
 
+	if divtag:
+		for tag in divtag.descendants:
+			if tag.name == 'li':
 
-	for tag in divtag.descendants:
-		if tag.name == 'li':
-
-			for newtag in tag.descendants:
-				if newtag.name == 'a':
-					newhref=newtag['href']
-					subdeptname = newtag.contents[1].text
-					newurl = tesco_normalizer(newhref)
+				for newtag in tag.descendants:
+					if newtag.name == 'a':
+						newhref=newtag['href']
+						subdeptname = newtag.contents[1].text
+						newurl = tesco_normalizer(newhref)
 
 	
+						if SubCategory.objects.filter(name=subdeptname, category=Category.objects.get(id=deptid)):
+							tesco_third(newurl, SubCategory.objects.filter(name=subdeptname, category=Category.objects.get(id=deptid))[0].id)
+						else:
+							subcat = SubCategory.objects.create(name=subdeptname, category=Category.objects.get(id=deptid))
+							tesco_third(newurl, subcat.id)
+
+
+	elif soup.find('div', {'class' : 'coded-left-nav'}):
+
+		divtags = soup.find_all('div', {'class' : 'coded-left-nav'})
+		for divtag in divtags:
+			for newtag in divtag.descendants:
+				
+				if newtag.name == 'a':
+					newhref=newtag['href']
+					subdeptname = newtag.contents[0]
+					newurl = tesco_normalizer(newhref)
+
 					if SubCategory.objects.filter(name=subdeptname, category=Category.objects.get(id=deptid)):
 						tesco_third(newurl, SubCategory.objects.filter(name=subdeptname, category=Category.objects.get(id=deptid))[0].id)
 					else:
 						subcat = SubCategory.objects.create(name=subdeptname, category=Category.objects.get(id=deptid))
 						tesco_third(newurl, subcat.id)
-
-
 
 
 def tesco_third(page, subdeptid):
