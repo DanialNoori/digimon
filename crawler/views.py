@@ -285,5 +285,169 @@ def browse_amazon_nodes(request):
 
 
 
+def tesco_normalizer(href):
+	newurl = 'http://www.tesco.com' + href
+	return newurl
 
 
+
+def tesco_first():
+	response = requests.get('http://www.tesco.com/direct/?sc_cmp=ref*dchp*stc*tab*tab&utm_source=dchp&utm_medium=tab&utm_campaign=tab', verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	htags = soup.find_all('h2', {'class' : 'department-title'})	
+
+	for htag in htags:
+
+		suburl = tesco_normalizer(htag.parent['href'])
+		deptname = htag.text
+		
+		if Category.objects.filter(name=deptname):
+			deptid = Category.objects.filter(name=deptname)[0].id
+			tesco_second(suburl, deptid)
+		
+		else:
+			
+			dept = Category.objects.create(name=deptname)
+			tesco_second(suburl, dept.id)
+
+
+def tesco_second(suburl, deptid):
+
+	response = requests.get(suburl, verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	divtag = soup.find('div', {'class' : 'menu'})	
+
+
+	for tag in divtag.descendants:
+		if tag.name == 'li':
+
+			for newtag in tag.descendants:
+				if newtag.name == 'a':
+					newhref=newtag['href']
+					subdeptname = newtag.contents[1].text
+					newurl = tesco_normalizer(newhref)
+
+	
+					if SubCategory.objects.filter(name=subdeptname, category=Category.objects.get(id=deptid)):
+						tesco_third(newurl, SubCategory.objects.filter(name=subdeptname, category=Category.objects.get(id=deptid))[0].id)
+					else:
+						subcat = SubCategory.objects.create(name=subdeptname, category=Category.objects.get(id=deptid))
+						tesco_third(newurl, subcat.id)
+
+
+
+
+def tesco_third(page, subdeptid):
+
+	response = requests.get(page, verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	divtag = soup.find('div', {'class' : 'menu'})	
+
+	if divtag:
+		for tag in divtag.descendants:
+			if tag.name == 'li':
+
+				for newtag in tag.descendants:
+					if newtag.name == 'a':
+						newhref=newtag['href']
+						groupname = newtag.contents[1].text
+						newurl = tesco_normalizer(newhref)
+
+						if not Group.objects.filter(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid)):
+							subcat = Group.objects.create(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid))
+							tesco_fourth(newurl, subcat.id)	
+		
+						else:
+							subcat = Group.objects.filter(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid))[0]
+							tesco_fourth(newurl, subcat.id)
+
+
+	elif soup.find('div', {'id' : 'product-categories'}):
+
+		divtag = soup.find('div', {'id' : 'product-categories'})
+
+		for newtag in divtag.descendants:
+			if newtag.name == 'a':
+				newhref=newtag['href']
+				groupname = newtag.contents[0]
+				newurl = tesco_normalizer(newhref)
+
+				if not Group.objects.filter(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid)):
+					subcat = Group.objects.create(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid))
+					tesco_fourth(newurl, subcat.id)	
+		
+				else:
+					subcat = Group.objects.filter(name=groupname, subcategory=SubCategory.objects.get(id=subdeptid))[0]
+					tesco_fourth(newurl, subcat.id)
+
+
+
+def tesco_fourth(page, groupid):
+
+	response = requests.get(page, verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	divtag = soup.find('div', {'id' : 'product-categories'})	
+
+	if divtag:
+		for tag in divtag.descendants:
+
+			if tag.name == 'a':
+
+				newhref=tag['href']
+				subgroup = tag.contents[0]
+				newurl = tesco_normalizer(newhref)
+				group = group=Group.objects.get(id=groupid)
+						
+				if not SubGroup.objects.filter(name=subgroup, group=group):
+					subgroup = SubGroup.objects.create(name=subgroup, group=group)
+					tesco_attribute(newurl, subgroup.id)
+
+				else:
+					subgroup = SubGroup.objects.filter(name=subgroup, group=group)[0]
+					tesco_attribute(newurl, subgroup.id)							
+
+
+	else:
+		group = group=Group.objects.get(id=groupid)
+
+		if not SubGroup.objects.filter(name=group.name, group=group):
+			subgroup = SubGroup.objects.create(name=group.name, group=group)
+			tesco_attribute(page, subgroup.id)
+		else:
+			subgroup = SubGroup.objects.filter(name=group.name, group=group)[0]			
+			tesco_attribute(page, subgroup.id)
+
+
+
+def tesco_attribute(page, subgroupid):
+
+	response = requests.get(page, verify=False)
+	soup = BeautifulSoup(response.text, 'html.parser')
+	divtags = soup.find_all('div', {'class' : 'filter-filterGroup'})
+	subgroup = SubGroup.objects.get(id=subgroupid)
+
+	for divtag in divtags:
+		for tag in divtag.descendants:
+			if tag.name == 'h3':
+				attrname = tag.text
+				
+				if 'Price' not in attrname and 'Rating' not in attrname and 'Sold' not in attrname:
+					
+					if not Attribute.objects.filter(name=attrname, subgroup=subgroup):
+						attr = Attribute.objects.create(name=attrname, subgroup=subgroup)
+					else:
+						attr = Attribute.objects.filter(name=attrname, subgroup=subgroup)[0]
+
+			if tag.name == 'a':
+				optionname = tag.contents[0]
+				check = tag.parent.parent.parent.parent.contents[1].text
+				
+				if 'Price' not in check and 'Rating' not in check and 'Sold' not in check:
+
+					if not Option.objects.filter(name=optionname, attribute=attr):
+						Option.objects.create(name=optionname, attribute=attr)
+
+
+def tesco_runner(requests):
+	tesco_first()
+	return HttpResponse('OK')

@@ -22,4 +22,5 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^$', views.web_spider),
     url(r'^amazon$', views.browse_amazon_nodes),
+    url(r'^tesco$', views.tesco_runner),
 ]
