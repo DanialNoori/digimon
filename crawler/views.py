@@ -303,12 +303,14 @@ def tesco_first():
 		
 		if Category.objects.filter(name=deptname):
 			deptid = Category.objects.filter(name=deptname)[0].id
-			tesco_second(suburl, deptid)
+			if not deptname == 'Home' and not deptname == 'Technology & Gaming' and not deptname == 'Home Electrical' and not deptname == 'Clothing & Accessories':
+				tesco_second(suburl, deptid)
 		
 		else:
 			
 			dept = Category.objects.create(name=deptname)
-			tesco_second(suburl, dept.id)
+			if not deptname == 'Home' and not deptname == 'Technology & Gaming' and not deptname == 'Home Electrical' and not deptname == 'Clothing & Accessories':
+				tesco_second(suburl, dept.id)
 
 
 def tesco_second(suburl, deptid):
