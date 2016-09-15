@@ -23,4 +23,7 @@ urlpatterns = [
     url(r'^$', views.web_spider),
     url(r'^amazon$', views.browse_amazon_nodes),
     url(r'^tesco$', views.tesco_runner),
+    url(r'^edit/tesco$', views.edit_tesco),
+    url(r'^grocery/tesco$', views.tesco_grocery),
+    url(r'^target$', views.target),
 ]
